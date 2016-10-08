@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using LibGit2Sharp;
 
 namespace WindowsFormsApplication1
@@ -9,7 +10,7 @@ namespace WindowsFormsApplication1
     public class GitRepositoryLogger
     {
         private const string DATE_FORMAT = "ddd dd MMM HH:mm:ss yyyy K";
-        private string _log;
+        private StringBuilder _log;
         private string _path;
         private readonly int _maxCommitsAmount;
         private Repository _repo;
@@ -26,7 +27,7 @@ namespace WindowsFormsApplication1
 
         public string GetLog()
         {
-            _log = "";
+            _log = new StringBuilder();
             _repo = new Repository(_path);
             using (_repo)
             {
@@ -35,7 +36,7 @@ namespace WindowsFormsApplication1
                     LogCommit(c);
                 }
             }
-            return _log;
+            return _log.ToString();
         }
 
         private IEnumerable<Commit> TakeDesiredCommits()
@@ -55,7 +56,6 @@ namespace WindowsFormsApplication1
 
         private void LogCommit(Commit commit)
         {
-            int filesChanged = 0;
             LogFilesChangedInCommit(commit);
             LogCommitDetails(commit);
         }
@@ -71,7 +71,7 @@ namespace WindowsFormsApplication1
                 {"IsMergeCommit",commit.ParentsCount > 1},
                 {"Message", commit.MessageShort}
             }.ToSplunkLogEndLine();
-            _log += commitLog;
+            _log.Append(commitLog);
         }
 
         private void LogFilesChangedInCommit(Commit commit)
@@ -92,7 +92,7 @@ namespace WindowsFormsApplication1
                         {"time", GetDateOfCommit(commit)},
                         {"LinesChanged", change.LinesAdded + change.LinesDeleted}
                     }.ToSplunkLogEndLine();
-                    _log += fileLog;
+                    _log.Append(fileLog);
                 }
             }
         }

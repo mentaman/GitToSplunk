@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text;
 
 namespace WindowsFormsApplication1
 {
@@ -6,16 +7,16 @@ namespace WindowsFormsApplication1
     {
         public static string ToSplunkLog(this Dictionary<string, object> dictionary)
         {
-            var str = "";
+            StringBuilder str = new StringBuilder();
             foreach(var pair in dictionary)
             {
-                str += $"{pair.Key}=\"{pair.Value.ToString().Replace("\"", "")}\" ";
+                str.Append($"{pair.Key}=\"{pair.Value.ToString().Replace("\"", "")}\" ");
             }
-            return str;
+            return str.ToString();
         }
         public static string ToSplunkLogEndLine(this Dictionary<string, object> dictionary)
         {
-            return dictionary.ToSplunkLog()+"\r\n";
+            return $"{dictionary.ToSplunkLog()}\r\n";
         }
     }
 }
