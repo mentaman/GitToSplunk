@@ -9,7 +9,6 @@ namespace WindowsFormsApplication1
 {
     public class GitRepositoryLogger
     {
-        private const string DATE_FORMAT = "ddd dd MMM HH:mm:ss yyyy K";
         private StringBuilder _log;
         private string _path;
         private readonly int _maxCommitsAmount;
@@ -62,44 +61,53 @@ namespace WindowsFormsApplication1
 
         private void LogCommitDetails(Commit commit)
         {
-            string commitLog = new Dictionary<string, object>()
+            string commitLog = GetCommitDetails(commit).ToSplunkLogEndLine(commit.Author.When);
+            _log.Append(commitLog);
+        }
+
+        private IDictionary<string, object> GetSharedCommitDetails(Commit commit)
+        {
+            return new Dictionary<string, object>()
             {
-                {"Type", "Commit"},
                 {"CommitId", commit.Id},
                 {"Author", commit.Author.Name},
-                {"time", GetDateOfCommit(commit)},
                 {"IsMergeCommit",commit.ParentsCount > 1},
+            };
+        }
+
+        private IDictionary<string, object> GetCommitDetails(Commit commit)
+        {
+            return new Dictionary<string, object>()
+            {
+                {"Type", "Commit"},
                 {"Message", commit.MessageShort}
-            }.ToSplunkLogEndLine();
-            _log.Append(commitLog);
+            }.Merge(GetSharedCommitDetails(commit));
         }
 
         private void LogFilesChangedInCommit(Commit commit)
         {
             foreach (var parent in commit.Parents)
             {
-                var changes = _repo.Diff.Compare(parent.Tree, commit.Tree);
-                foreach (TreeEntryChanges change in changes)
+                var fileChanges = _repo.Diff.Compare(parent.Tree, commit.Tree);
+                foreach (TreeEntryChanges fileChange in fileChanges)
                 {
-                    string fileLog = new Dictionary<string, object>()
-                    {
-                        {"Type", "File"},
-                        {"ComitId", commit.Id},
-                        {"ChangeStatus", change.Status},
-                        {"OldPath", change.OldPath},
-                        {"LinesAdded", change.LinesAdded},
-                        {"LinesDeleted", change.LinesDeleted},
-                        {"time", GetDateOfCommit(commit)},
-                        {"LinesChanged", change.LinesAdded + change.LinesDeleted}
-                    }.ToSplunkLogEndLine();
+                    string fileLog = GetFileChangedDetails(commit, fileChange).ToSplunkLogEndLine(commit.Author.When);
                     _log.Append(fileLog);
                 }
             }
         }
 
-        private static string GetDateOfCommit(Commit commit)
+        private IDictionary<string, object> GetFileChangedDetails(Commit commit, TreeEntryChanges change)
         {
-            return commit.Author.When.ToString(DATE_FORMAT, CultureInfo.InvariantCulture);
+            return new Dictionary<string, object>()
+            {
+                {"Type", "File"},
+                {"ChangeStatus", change.Status},
+                {"OldPath", change.OldPath},
+                {"LinesAdded", change.LinesAdded},
+                {"LinesDeleted", change.LinesDeleted},
+                {"LinesChanged", change.LinesAdded + change.LinesDeleted}
+            }.Merge(GetSharedCommitDetails(commit));
         }
     }
 }
