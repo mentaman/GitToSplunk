@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -10,11 +11,17 @@ namespace WindowsFormsApplication1
         private const string DATE_FORMAT = "ddd dd MMM HH:mm:ss yyyy K";
         private string _log;
         private string _path;
+        private readonly int _maxCommitsAmount;
         private Repository _repo;
+        private DateTime _fromDate;
+        private DateTime _toDate;
 
-        public GitRepositoryLogger(string path)
+        public GitRepositoryLogger(string path, int maxCommitsAmount, DateTime fromDate, DateTime toDate)
         {
             _path = path;
+            _maxCommitsAmount = maxCommitsAmount;
+            _fromDate = fromDate;
+            _toDate = toDate;
         }
 
         public string GetLog()
@@ -23,12 +30,27 @@ namespace WindowsFormsApplication1
             _repo = new Repository(_path);
             using (_repo)
             {
-                foreach (Commit c in _repo.Commits.Take(1))
+                foreach (Commit c in TakeDesiredCommits())
                 {
                     LogCommit(c);
                 }
             }
             return _log;
+        }
+
+        private IEnumerable<Commit> TakeDesiredCommits()
+        {
+            int commitsNum = _repo.Commits.Count();
+            int takeAmount;
+            if (_maxCommitsAmount == -1)
+            {
+                takeAmount = commitsNum;
+            }
+            else
+            {
+                takeAmount = Math.Min(commitsNum, _maxCommitsAmount);
+            }
+            return _repo.Commits.Where(commit => commit.Author.When > _fromDate && commit.Author.When < _toDate).Take(takeAmount);
         }
 
         private void LogCommit(Commit commit)
